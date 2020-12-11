@@ -12,7 +12,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     @Autowired
-    private Alphainterceptor alphainterceptor;
+    private Alphainterceptor alphaInterceptor;
 
     @Autowired
     private LoginTicketInterceptor loginTicketInterceptor;
@@ -22,14 +22,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(alphainterceptor).excludePathPatterns("/*/*.css", "/*/*.js", "/*/*.png", "/*/*.jpg", "/*/*.jpeg")
-        .addPathPatterns("/register", "/login");
+        // excludePathPatterns排除静态资源（随意访问，不被拦截）
+        // addPathPatterns 只拦截register和login
+        registry.addInterceptor(alphaInterceptor)
+                .excludePathPatterns("/*/*.css", "/*/*.js", "/*/*.png", "/*/*.jpg", "/*/*.jpeg")
+                .addPathPatterns("/register", "/login");
 
+        registry.addInterceptor(loginTicketInterceptor)
+                .excludePathPatterns("/*/*.css", "/*/*.js", "/*/*.png", "/*/*.jpg", "/*/*.jpeg");
 
-        registry.addInterceptor(loginTicketInterceptor).excludePathPatterns("/*/*.css", "/*/*.js", "/*/*.png", "/*/*.jpg", "/*/*.jpeg");
-
-        registry.addInterceptor(loginRequiredInterceptor).excludePathPatterns("/*/*.css", "/*/*.js", "/*/*.png", "/*/*.jpg", "/*/*.jpeg");
-
+        registry.addInterceptor(loginRequiredInterceptor)
+                .excludePathPatterns("/*/*.css", "/*/*.js", "/*/*.png", "/*/*.jpg", "/*/*.jpeg");
     }
-
 }

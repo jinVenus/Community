@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.module.ModuleDescriptor;
 
 @Controller
 @RequestMapping("/user")
@@ -42,109 +41,120 @@ public class UserController {
     private String contextPath;
 
     @Autowired
-    private UserService userService;
+    UserService userService;
 
     @Autowired
-    private HostHolder hostHolder;
-
+    HostHolder hostHolder;
 
     @LoginRequired
     @RequestMapping(path = "/setting", method = RequestMethod.GET)
-    public String getSettingPage() {
+    public String getSettingPage(){
         return "/site/setting";
     }
 
     @LoginRequired
     @RequestMapping(path = "/upload", method = RequestMethod.POST)
-    public String uploadHeader(MultipartFile headerImage, Model model) {
-        if(headerImage == null) {
-            model.addAttribute("error", "您还没有选择图片");
+    public String uploadHeader(MultipartFile headerImage, Model model){
+        if (headerImage == null){
+            model.addAttribute("error","您还未选择图片");
             return "/site/setting";
         }
-
         String fileName = headerImage.getOriginalFilename();
         String suffix = fileName.substring(fileName.lastIndexOf("."));
-        if (StringUtils.isBlank(suffix)){
-            model.addAttribute("error", "文件格式不正确");
+        System.out.println(suffix);
+        if(StringUtils.isBlank(suffix)){
+            model.addAttribute("error","文件的格式不正确");
             return "/site/setting";
         }
 
-        //生成随机文件名
+        if(!suffix.equalsIgnoreCase(".jpg") && !suffix.equalsIgnoreCase(".png")
+                && !suffix.equalsIgnoreCase(".jpeg")){
+            model.addAttribute("error","文件的格式不正确, 请使用png, jpg, jpeg类型的图片");
+            return "/site/setting";
+        }
+
+        // 生成随机的文件名，避免图片资源在内部重写覆盖
         fileName = CommunityUtil.generateUUID() + suffix;
-        //确定文件存放路径
+        // 确定文件存放的路径
         File dest = new File(uploadPath + "/" + fileName);
         try {
-            //存储文件
+            // 存储文件
             headerImage.transferTo(dest);
         } catch (IOException e) {
-            logger.error("上传文件失败：" + e.getMessage());
+            logger.error("上传文件失败" + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("上传文件失败，服务器发生异常", e);
         }
 
-        //更新当前用户的头像路径
+        // 更新当前用户的头像的路径（web）
+        // http://localhost:8080/community/userHeader/xxx.png
         User user = hostHolder.getUser();
         String headerUrl = domain + contextPath + "/user/header/" + fileName;
-        userService.updateHeader(user.getId(), headerUrl);
+        userService.updateHeader(user.getId(),headerUrl);
+
 
         return "redirect:/index";
     }
 
-    @RequestMapping(path = "header/{fileName}", method = RequestMethod.GET)
-    public void getHeader(@PathVariable("fileName") String fileName, HttpServletResponse response) {
-        //服务器存放的路径
+
+    @RequestMapping(path = "/header/{fileName}", method = RequestMethod.GET)
+    public void getHeader(@PathVariable("fileName") String fileName, HttpServletResponse response){
+        // 服务器存放路径
         fileName = uploadPath + "/" + fileName;
-        //文件的后缀
+        // 文件的后缀
         String suffix = fileName.substring(fileName.lastIndexOf("."));
-        //响应图片
+        // 响应图片
         response.setContentType("image/" + suffix);
-        try(
+        try (
                 FileInputStream fis = new FileInputStream(fileName);
                 OutputStream os = response.getOutputStream();
-                ) {
+                ){
+            // 设置缓冲区，不能一个一个字节的输出
             byte[] buffer = new byte[1024];
             int b = 0;
+            // fis.read(buffer) == -1 意味着没有读到数据
             while((b = fis.read(buffer)) != -1){
-                os.write(buffer, 0, b);
+                os.write(buffer,0, b);
             }
+
         } catch (IOException e) {
             logger.error("读取头像失败" + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     @LoginRequired
-    @RequestMapping(path = "/reset", method = RequestMethod.POST)
-    public String resetPassword(String newpsw, String oldPassword, String confirmPassword, Model model, @CookieValue("ticket") String ticket) {
-        if(StringUtils.isBlank(oldPassword)) {
-            model.addAttribute("oldPasswordMSG", "您还没有输入旧密码");
+    @RequestMapping(path = "/resetPassword", method = RequestMethod.POST)
+    public String resetPassword(@CookieValue("ticket") String ticket, String password, String newPassword, String confirmPassword, Model model){
+        if (StringUtils.isBlank(password)){
+            model.addAttribute("passwordMsg", "请输入原密码");
             return "/site/setting";
         }
-
-        if(StringUtils.isBlank(newpsw)) {
-            model.addAttribute("newPasswordMSG", "您还没有输入新密码");
+        if (StringUtils.isBlank(newPassword)){
+            model.addAttribute("newPasswordMsg", "请输入新密码");
             return "/site/setting";
         }
-
-        if(StringUtils.isBlank(confirmPassword)) {
-            model.addAttribute("confirmPasswordMSG", "您需要再次输入新密码");
+        if (StringUtils.isBlank(confirmPassword)){
+            model.addAttribute("confirmPasswordMsg", "请输入确认密码");
             return "/site/setting";
         }
 
         User user = hostHolder.getUser();
-        oldPassword = CommunityUtil.md5(oldPassword + user.getSalt());
-        if (!user.getPassword().equals(oldPassword)){
-            model.addAttribute("oldPasswordMSG", "原密码不正确");
+        password = CommunityUtil.md5(password + user.getSalt());
+        if (!password.equals(user.getPassword())){
+            model.addAttribute("passwordMsg", "密码不正确");
             return "/site/setting";
         }
 
-        if (!newpsw.equals(confirmPassword)){
-            model.addAttribute("confirmPasswordMSG", "两次输入的密码不一致");
+        if (!newPassword.equals(confirmPassword)){
+            model.addAttribute("confirmPasswordMsg", "确认密码输入不正确");
             return "/site/setting";
         }
 
-        newpsw = CommunityUtil.md5(newpsw + user.getSalt());
-        userService.updatePassword(user.getId(), newpsw);
+        newPassword = CommunityUtil.md5(newPassword + user.getSalt());
+        userService.updatePassword(user.getId(), newPassword);
         userService.logout(ticket);
+
         return "redirect:/login";
     }
-
 }
