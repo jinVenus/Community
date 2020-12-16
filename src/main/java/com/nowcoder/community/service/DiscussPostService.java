@@ -32,11 +32,15 @@ public class DiscussPostService {
 
         //转义HTML标记
         post.setTitle(HtmlUtils.htmlEscape(post.getTitle()));
-        post.setContext(HtmlUtils.htmlEscape(post.getContext()));
+        post.setContent(HtmlUtils.htmlEscape(post.getContent()));
         //过滤敏感词
         post.setTitle(sensitiveFilter.filter(post.getTitle()));
-        post.setContext(sensitiveFilter.filter(post.getContext()));
+        post.setContent(sensitiveFilter.filter(post.getContent()));
 
         return discussPostMapper.insertDiscussPost(post);
+    }
+
+    public DiscussPost findDiscussPostById(int id){
+        return discussPostMapper.selectDiscussPostById(id);
     }
 }
