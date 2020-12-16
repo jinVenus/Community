@@ -110,4 +110,15 @@ public class MapperTest {
         System.out.println(loginTicket);
     }
 
+    @Test
+    public void testInsertPost(){
+        List<DiscussPost> list = discussPostMapper.selectDiscussPosts(0, 0, 10);
+        for (DiscussPost post:list) {
+            System.out.println(post);
+            int rows = discussPostMapper.insertDiscussPost(post);
+            System.out.println(rows);
+        }
+
+    }
+
 }
