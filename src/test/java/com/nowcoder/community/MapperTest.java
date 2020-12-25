@@ -6,6 +6,9 @@ import com.nowcoder.community.entity.LoginTicket;
 import com.nowcoder.community.entity.Message;
 import com.nowcoder.community.entity.User;
 import com.nowcoder.community.service.AlphaService;
+import com.nowcoder.community.service.UserService;
+import com.nowcoder.community.util.CommunityUtil;
+import com.nowcoder.community.util.HostHolder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.BeansException;
@@ -18,6 +21,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -37,6 +41,13 @@ public class MapperTest {
 
     @Autowired
     private MessageMapper messageMapper;
+
+    @Autowired
+    private HostHolder hostHolder;
+
+    @Autowired
+    private UserService userService;
+
 
     @Test
     public void testSelectUser() {
@@ -151,6 +162,32 @@ public class MapperTest {
         System.out.println(count);
 
 
+    }
+
+    @Test
+    public void testInsertMessage(){
+        User target = userService.findUserByName("abcde");
+        Message message = new Message();
+        message.setFromId(111);
+        message.setToId(target.getId());
+        if (message.getFromId() < message.getToId()){
+            message.setConversationId(message.getFromId() +"_" + message.getToId() );
+        }else {
+            message.setConversationId(message.getToId() +"_" + message.getFromId() );
+        }
+        message.setContent("hello");
+        message.setCreateTime(new Date());
+
+        int msg = messageMapper.insertMessage(message);
+        System.out.println(msg);
+    }
+
+    @Test
+    public void testUpdateStatus() {
+        List<Integer> list = new ArrayList<>();
+        list.add(355);
+        int status = messageMapper.updateStatus(list, 1);
+        System.out.println(status);
     }
 
 }
